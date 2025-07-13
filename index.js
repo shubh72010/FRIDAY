@@ -86,3 +86,7 @@ client.on('messageCreate', async (message) => {
 });
 
 client.login(process.env.TOKEN);
+
+app.listen(PORT, () => {
+  console.log(`🌐 Web UI running on port ${PORT}`);
+});
