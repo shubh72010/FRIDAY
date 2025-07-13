@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>FRIDAY Assistant</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #121212;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #output .bubble {
+      background: #1e1e1e;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+    }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      background: #1e1e1e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #6200ea;
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>FRIDAY - AI Assistant</h2>
+  <div id="output"></div>
+  <textarea id="input" placeholder="Ask something..."></textarea>
+  <button onclick="ask()">Send</button>
+
+  <script>
+    async function ask() {
+      const input = document.getElementById('input').value.trim();
+      if (!input) return;
+
+      document.getElementById('output').innerHTML += `<div class="bubble"><strong>You:</strong> ${input}</div>`;
+      document.getElementById('input').value = '';
+
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer YOUR_OPENROUTER_API_KEY',
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://friday-3xi0.onrender.com/',
+          'X-Title': 'FRIDAY'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-pro',
+          messages: [
+            { role: 'system', content: 'You are FRIDAY, a helpful and intelligent AI assistant.' },
+            { role: 'user', content: input }
+          ]
+        })
+      });
+
+      const json = await res.json();
+      const reply = json.choices?.[0]?.message?.content || 'Sorry, I blanked out.';
+      document.getElementById('output').innerHTML += `<div class="bubble"><strong>FRIDAY:</strong> ${reply}</div>`;
+    }
+  </script>
+</body>
+</html>
