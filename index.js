@@ -1,18 +1,18 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
-import express from 'express'; // For Render ping
+import express from 'express';
 
 dotenv.config();
+
+// 🟢 Keep-alive server for Render
+const app = express();
+app.get('/', (_, res) => res.send('FRIDAY is online 👑'));
+app.listen(process.env.PORT || 3000);
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
-
-// Optional keep-alive for Render
-const app = express();
-app.get('/', (_, res) => res.send('FRIDAY is awake. 🧠'));
-app.listen(process.env.PORT || 3000);
 
 client.once('ready', () => {
   console.log(`🟢 FRIDAY is online as ${client.user.tag}`);
@@ -21,8 +21,8 @@ client.once('ready', () => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  const isMentioned = message.mentions.has(client.user);
-  if (!isMentioned) return;
+  const mentioned = message.mentions.has(client.user);
+  if (!mentioned) return;
 
   const prompt = message.content.replace(/<@!?(\d+)>/, '').trim();
   if (!prompt) return message.reply("🗣️ You pinged me, but said nothing.");
@@ -38,19 +38,25 @@ client.on('messageCreate', async (message) => {
       },
       body: JSON.stringify({
         model: 'cypher-alpha',
-        messages: [
-          { role: 'user', content: prompt }
-        ]
+        messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || "🤖 Sorry, I blanked out.";
+    console.log("[DEBUG] OpenRouter response:", JSON.stringify(data, null, 2));
 
-    message.reply(reply.slice(0, 2000));
+    let reply = "🤖 Sorry, I blanked out.";
+
+    if (data?.choices?.[0]?.message?.content) {
+      reply = data.choices[0].message.content;
+    } else if (data?.error?.message) {
+      reply = `❌ OpenRouter Error: ${data.error.message}`;
+    }
+
+    message.reply(reply.slice(0, 2000)); // Discord limit
   } catch (err) {
-    console.error("💥 Error:", err);
-    message.reply("❌ Something went wrong in my circuits.");
+    console.error("🔥 FRIDAY API fail:", err);
+    message.reply("💥 FRIDAY malfunctioned. Someone call Stark.");
   }
 });
 
