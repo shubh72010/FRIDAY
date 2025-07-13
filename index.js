@@ -5,17 +5,18 @@ import express from 'express';
 
 dotenv.config();
 
-// Keep-alive server for Render
+// 🟢 Keep-alive for Render
 const app = express();
-app.get('/', (_, res) => res.send('FRIDAY is online 👑'));
+app.get('/', (_, res) => res.send('FRIDAY is alive 💻'));
 app.listen(process.env.PORT || 3000);
 
+// 🤖 Discord Bot Setup
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
 client.once('ready', () => {
-  console.log(`🟢 FRIDAY is online as ${client.user.tag}`);
+  console.log(`✅ FRIDAY is online as ${client.user.tag}`);
 });
 
 client.on('messageCreate', async (message) => {
@@ -25,9 +26,12 @@ client.on('messageCreate', async (message) => {
   if (!mentioned) return;
 
   const prompt = message.content.replace(/<@!?(\d+)>/, '').trim();
-  if (!prompt) return message.reply("🗣️ You pinged me, but said nothing.");
+  if (!prompt) {
+    await message.reply("🗣️ You pinged me, but said nothing.");
+    return;
+  }
 
-  await message.channel.send("💭 FRIDAY is thinking...");
+  console.log(`[FRIDAY PINGED] by ${message.author.tag}: ${prompt}`);
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -40,17 +44,12 @@ client.on('messageCreate', async (message) => {
       },
       body: JSON.stringify({
         model: 'openrouter/cypher-alpha:free',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
+        messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await res.json();
-    console.log("[DEBUG] OpenRouter response:", JSON.stringify(data, null, 2));
+    console.log("[OpenRouter Response]", JSON.stringify(data, null, 2));
 
     let reply = "🤖 Sorry, I blanked out.";
 
@@ -60,10 +59,10 @@ client.on('messageCreate', async (message) => {
       reply = `❌ OpenRouter Error: ${data.error.message}`;
     }
 
-    message.reply(reply.slice(0, 2000));
+    message.reply(reply.slice(0, 2000)); // Limit to Discord's max
   } catch (err) {
-    console.error("🔥 FRIDAY API fail:", err);
-    message.reply("💥 FRIDAY malfunctioned. Someone call Stark.");
+    console.error("🔥 FRIDAY API crash:", err);
+    message.reply("💥 Something went wrong. I'm rebooting my brain.");
   }
 });
 
