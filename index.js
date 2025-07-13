@@ -5,7 +5,7 @@ import express from 'express';
 
 dotenv.config();
 
-// 🟢 Keep-alive server for Render
+// Keep-alive server for Render
 const app = express();
 app.get('/', (_, res) => res.send('FRIDAY is online 👑'));
 app.listen(process.env.PORT || 3000);
@@ -34,11 +34,18 @@ client.on('messageCreate', async (message) => {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://friday-3xi0.onrender.com', // optional
+        'X-Title': 'FRIDAY' // optional
       },
       body: JSON.stringify({
-        model: 'cypher-alpha',
-        messages: [{ role: 'user', content: prompt }]
+        model: 'openrouter/cypher-alpha:free',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
       })
     });
 
@@ -53,7 +60,7 @@ client.on('messageCreate', async (message) => {
       reply = `❌ OpenRouter Error: ${data.error.message}`;
     }
 
-    message.reply(reply.slice(0, 2000)); // Discord limit
+    message.reply(reply.slice(0, 2000));
   } catch (err) {
     console.error("🔥 FRIDAY API fail:", err);
     message.reply("💥 FRIDAY malfunctioned. Someone call Stark.");
