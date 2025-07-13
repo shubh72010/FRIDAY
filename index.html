@@ -2,17 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FRIDAY - AI Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    html, body {
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #121212;
-      font-family: 'Segoe UI', sans-serif;
-      color: white;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(145deg, #111111, #1a1a1a);
+      color: #fff;
+      height: 100vh;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     #app {
@@ -24,58 +30,95 @@
     #output {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
-      box-sizing: border-box;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-end;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .message.bot {
+      flex-direction: row;
+      justify-content: flex-start;
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
+
+    .pfp {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      margin: 0 8px;
     }
 
     .bubble {
-      background: #1e1e1e;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
       word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .message.user .bubble {
+      background: rgba(98, 0, 234, 0.1);
+      border: 1px solid rgba(98, 0, 234, 0.25);
     }
 
     #inputArea {
       display: flex;
-      padding: 10px;
-      background: #1a1a1a;
-      border-top: 1px solid #333;
-      position: sticky;
-      bottom: 0;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid #222;
     }
 
     textarea {
       flex: 1;
       resize: none;
       padding: 10px;
-      font-size: 16px;
-      border-radius: 8px;
-      background: #2a2a2a;
-      color: white;
+      font-size: 15px;
+      border-radius: 12px;
       border: none;
+      background: #222;
+      color: white;
+      height: 45px;
+      max-height: 100px;
       outline: none;
-      height: 40px;
-      max-height: 80px;
     }
 
     button {
-      margin-left: 10px;
-      padding: 0 16px;
+      margin-left: 12px;
+      padding: 0 20px;
       border: none;
-      border-radius: 8px;
-      background: #6200ea;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #6c00ff, #b200ff);
       color: white;
-      font-size: 16px;
+      font-weight: 600;
+      font-size: 14px;
       cursor: pointer;
     }
 
-    @media (max-width: 600px) {
-      textarea {
-        font-size: 14px;
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
       }
-      button {
-        font-size: 14px;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
   </style>
@@ -84,7 +127,7 @@
   <div id="app">
     <div id="output"></div>
     <div id="inputArea">
-      <textarea id="input" placeholder="Ask something..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ask();}"></textarea>
+      <textarea id="input" placeholder="Talk to FRIDAY..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ask();}"></textarea>
       <button onclick="ask()">Send</button>
     </div>
   </div>
@@ -92,14 +135,34 @@
   <script>
     const output = document.getElementById('output');
 
+    function addMessage(text, sender = 'bot') {
+      const msg = document.createElement('div');
+      msg.className = `message ${sender}`;
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+
+      if (sender === 'bot') {
+        const pfp = document.createElement('img');
+        pfp.src = 'FRIDAY.png';
+        pfp.alt = 'FRIDAY';
+        pfp.className = 'pfp';
+        msg.appendChild(pfp);
+      }
+
+      msg.appendChild(bubble);
+      output.appendChild(msg);
+      output.scrollTop = output.scrollHeight;
+    }
+
     async function ask() {
       const inputEl = document.getElementById('input');
       const input = inputEl.value.trim();
       if (!input) return;
 
-      output.innerHTML += `<div class="bubble"><strong>You:</strong> ${input}</div>`;
+      addMessage(input, 'user');
       inputEl.value = '';
-      output.scrollTop = output.scrollHeight;
 
       try {
         const res = await fetch('/api/chat', {
@@ -109,13 +172,11 @@
         });
 
         const data = await res.json();
-        const reply = data.reply || 'No response received.';
-        output.innerHTML += `<div class="bubble"><strong>FRIDAY:</strong> ${reply}</div>`;
-      } catch {
-        output.innerHTML += `<div class="bubble"><strong>FRIDAY:</strong> ⚠️ Error getting response.</div>`;
+        const reply = data.reply || 'No response.';
+        addMessage(reply, 'bot');
+      } catch (e) {
+        addMessage('⚠️ Failed to fetch response.', 'bot');
       }
-
-      output.scrollTop = output.scrollHeight;
     }
   </script>
 </body>
