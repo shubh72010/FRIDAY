@@ -1,20 +1,23 @@
 import express from 'express';
 import { readFileSync } from 'fs';
-import { createServer } from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Client, GatewayIntentBits } from 'discord.js';
 import fetch from 'node-fetch';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(express.static(__dirname)); // serve static files like PNG
 
 // Serve UI
 app.get('/', (req, res) => {
-  res.send(readFileSync('./index.html', 'utf8'));
+  res.send(readFileSync(path.join(__dirname, 'index.html'), 'utf8'));
 });
 
-// API endpoint for frontend chat
+// Frontend AI chat endpoint
 app.post('/api/chat', async (req, res) => {
   const userMsg = req.body.message;
   if (!userMsg) return res.status(400).json({ error: 'Missing message' });
@@ -29,7 +32,7 @@ app.post('/api/chat', async (req, res) => {
         'X-Title': 'FRIDAY'
       },
       body: JSON.stringify({
-        model: 'google/gemini-pro',
+        model: 'openrouter/cypher-alpha:free',
         messages: [
           { role: 'system', content: 'You are FRIDAY, a helpful assistant.' },
           { role: 'user', content: userMsg }
@@ -38,21 +41,21 @@ app.post('/api/chat', async (req, res) => {
     });
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || 'No response.';
+    const reply = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '⚠️ No response.';
     res.json({ reply });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong' });
+    res.status(500).json({ reply: '💥 Server error. Please try again later.' });
   }
 });
 
-// Discord bot code (unchanged)
+// Discord bot
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
 client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
+  console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
 client.on('messageCreate', async (message) => {
@@ -68,7 +71,7 @@ client.on('messageCreate', async (message) => {
         'X-Title': 'FRIDAY'
       },
       body: JSON.stringify({
-        model: 'google/gemini-pro',
+        model: 'openrouter/cypher-alpha:free',
         messages: [
           { role: 'system', content: 'You are FRIDAY, a helpful assistant.' },
           { role: 'user', content: message.cleanContent }
@@ -77,8 +80,8 @@ client.on('messageCreate', async (message) => {
     });
 
     const data = await res.json();
-    const response = data.choices?.[0]?.message?.content || 'Sorry, I blanked out.';
-    message.reply(response);
+    const reply = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || 'Sorry, I blanked out.';
+    message.reply(reply);
   } catch (error) {
     console.error(error);
     message.reply('There was an error.');
@@ -87,6 +90,7 @@ client.on('messageCreate', async (message) => {
 
 client.login(process.env.TOKEN);
 
+// Launch UI
 app.listen(PORT, () => {
-  console.log(`🌐 Web UI running on port ${PORT}`);
+  console.log(`🌐 Web UI running at http://localhost:${PORT}`);
 });
