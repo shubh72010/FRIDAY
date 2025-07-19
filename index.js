@@ -10,29 +10,27 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(__dirname)); // serve static files like PNG
+app.use(express.static(__dirname));
 
 // Serve UI
 app.get('/', (req, res) => {
   res.send(readFileSync(path.join(__dirname, 'index.html'), 'utf8'));
 });
 
-// Frontend AI chat endpoint
+// Frontend AI chat endpoint using Groq
 app.post('/api/chat', async (req, res) => {
   const userMsg = req.body.message;
   if (!userMsg) return res.status(400).json({ error: 'Missing message' });
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://friday-3xi0.onrender.com/',
-        'X-Title': 'FRIDAY'
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'openrouter/cypher-alpha:free',
+        model: 'llama3-8b-8192',
         messages: [
           { role: 'system', content: 'You are FRIDAY, a helpful assistant.' },
           { role: 'user', content: userMsg }
@@ -41,7 +39,7 @@ app.post('/api/chat', async (req, res) => {
     });
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '⚠️ No response.';
+    const reply = data.choices?.[0]?.message?.content || '⚠️ No response.';
     res.json({ reply });
   } catch (err) {
     console.error(err);
@@ -49,7 +47,7 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Discord bot
+// Discord bot using Groq
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
@@ -62,16 +60,14 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.mentions.has(client.user)) return;
 
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://friday-3xi0.onrender.com/',
-        'X-Title': 'FRIDAY'
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-3b-instruct:free',
+        model: 'llama3-8b-8192',
         messages: [
           { role: 'system', content: 'You are FRIDAY, a helpful assistant.' },
           { role: 'user', content: message.cleanContent }
@@ -79,8 +75,8 @@ client.on('messageCreate', async (message) => {
       })
     });
 
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || 'Sorry, I blanked out.';
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || 'Sorry, I blanked out.';
     message.reply(reply);
   } catch (error) {
     console.error(error);
