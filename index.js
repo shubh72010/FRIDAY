@@ -71,7 +71,7 @@ client.on('messageCreate', async (message) => {
         'X-Title': 'FRIDAY'
       },
       body: JSON.stringify({
-        model: 'moonshotai/kimi-dev-72b:free',
+        model: 'meta-llama/llama-3.2-3b-instruct:free',
         messages: [
           { role: 'system', content: 'You are FRIDAY, a helpful assistant.' },
           { role: 'user', content: message.cleanContent }
